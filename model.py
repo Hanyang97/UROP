@@ -4,6 +4,9 @@ from utils import extract, build_rankmat, similarity_mat, find_session_rank,\
     find_sessions_label
 from sklearn.cluster import AgglomerativeClustering
 
+# my_aggclustering is the clustering without considering previous clustering
+# the output is very large and can be improved by following my_aggclustering3
+
 
 class my_aggclustering():
     def __init__(
@@ -132,7 +135,8 @@ class my_aggclustering():
 
         return score_list
 
-
+# require some modifications for my_aggclustering2 to work
+# this iterates clustering based on previous unclustered ones.
 # class my_aggclustering2():
 #     def __init__(self, df, alpha_cluster, cluster_threshold, alpha_label, max_depth=1, seq_len=12):
 #         self.df = df
@@ -268,30 +272,45 @@ class my_aggclustering():
 
 #         return score_list
 
+
 class my_aggclustering3():
+    """
+    cluster based on previous cluster
+    """
+
     def __init__(
         self, df, alpha_cluster, cluster_threshold, alpha_label, seq_len=12
     ):
+        """
+        :param df: dataframe
+        :param alpha_cluster: alpha used for clustering
+        :param cluster_threshold: the threshold for clustering
+        :param alpha_label: alpha used for labelling
+        :param seq_len: length of sequences. Default 12
+        """
         self.df = (df).loc[df['Commands Length'] >
                            seq_len].reset_index(drop=True)
         self.alpha_cluster = alpha_cluster
         self.cluster_threshold = cluster_threshold
         self.alpha_label = alpha_label
         self.seq_len = seq_len
-        self.depth = 0
-        self.sessions_clusters = []
+        self.depth = 0  # current depth
+        self.sessions_clusters = []  # list of self.depthth depth of sessions_clusters
+        # list of self.depthth depth of initial_commands_clusters
         self.init_commands_clusters = []
-        self.posteriors = []
+        self.posteriors = []  # list of self.depthth depth of posteriors
+        # list of self.depthth depth of expected predictive probabilities
         self.expected_predictive_probs = []
-        self.weights = []
+        self.weights = []  # list of self.depthth depth of seights of each cluster
         self.sessions_rank_list = None
         self.seq_rank_list = None
 
     def fit(self, depth=None, verbose=True):
         """
         This function implements agglomerative clustering
+        :param depth: if depth is None, build upon existing depth
         """
-        # # ensure the length of session is not too small
+        # # ensure the length of session is not smaller than seq_len
         # new_df = (self.df).loc[self.df['Commands Length'] >
         #                        self.seq_len].reset_index(drop=True)
         # initialisation
@@ -308,15 +327,18 @@ class my_aggclustering3():
         self.expected_predictive_probs.append([])
         self.weights.append([])
 
+        # first training
         if depth == 1:
             A, self.sessions_rank_list, init_commands_list, self.seq_rank_list = \
                 build_rankmat(self.seq_len, sessions_list, depth)
+        # not first training
         else:
             add = 0
             init_commands_list = []
             clusters_temp = []
             A = np.zeros((0, max(self.sessions_rank_list)+1), dtype='int')
             A_temp = np.zeros((0, max(self.sessions_rank_list)+1), dtype='int')
+            # cluster within each previous cluster first
             for cluster in range(max(self.sessions_clusters[-1])+1):
                 idx = (np.array(self.sessions_clusters[-1]) == cluster)
                 sessions_list_clustering = \
@@ -365,7 +387,7 @@ class my_aggclustering3():
                 init_commands_clusters_temp.append(
                     [init_commands_list[i] for i in range(len(idx)) if idx[i]]
                 )
-
+        # cluster for all clusters
         E = -similarity_mat(A, np.ones(A.shape) * self.alpha_cluster)
         # start clustering
         clustering = AgglomerativeClustering(
@@ -424,6 +446,9 @@ class my_aggclustering3():
             print('Time spent {:.2f}s.'.format(time.time()-start_time))
 
     def predict(self, df, depth):
+        """
+        predict the list of score based on depth
+        """
         if self.depth == 0:
             raise ValueError('No training performed.')
         # ensure the length of session is not too small
@@ -446,22 +471,3 @@ class my_aggclustering3():
                       (max(self.sessions_rank_list)+1) for score in score_list]
 
         return score_list
-
-
-if __name__ == '__main__':
-    msdat_dir = '/home/hpms/Microsoft.IoT-Dump1.json'
-    import codecs
-    import json
-    import pandas as pd
-    with codecs.open(msdat_dir, 'r', 'utf-8-sig') as f:
-        msdat = json.load(f)
-    msdat = pd.DataFrame(msdat)
-    msdat['Commands'] = [tuple(session) for session in msdat['Commands']]
-    msdat = msdat.drop_duplicates(subset='Commands').reset_index(
-        drop=True)  # drop duplicates
-    msdat['Commands'] = [list(session) for session in msdat['Commands']]
-    msdat['Commands Length'] = [len(session) for session in msdat['Commands']]
-    my_agg = my_aggclustering3(msdat[:1000], 0.1, -1, 0.1)
-    my_agg.fit()
-    my_agg.fit()
-    my_agg.fit()
