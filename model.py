@@ -282,6 +282,7 @@ class my_aggclustering3():
         self, df, alpha_cluster, cluster_threshold, alpha_label, seq_len=12
     ):
         """
+        depth should not exceed seq_len, or need ensure commands length > depth
         :param df: dataframe
         :param alpha_cluster: alpha used for clustering
         :param cluster_threshold: the threshold for clustering
