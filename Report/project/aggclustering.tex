@@ -1,0 +1,56 @@
+\tikzset{%
+  % Specifications for style of nodes:
+            base/.style = {rectangle, rounded corners, draw=black,
+                           minimum width=4cm, minimum height=1cm,
+                           text centered, font=\sffamily},
+  activityStarts/.style = {base, fill=blue!30},
+       startstop/.style = {base, fill=red!30},
+    aggclustering/.style = {base, fill=green!30},
+         process/.style = {base, minimum width=2.5cm, fill=orange!15,
+                           font=\ttfamily},
+}
+% Drawing part, node distance is 1.5 cm and every node
+% is prefilled with white background
+
+\begin{tikzpicture}[node distance=1.5cm,
+    every node/.style={fill=white, font=\sffamily}, align=center]
+  % Specification of nodes (position, etc.)
+  \node (start)             [activityStarts]              {Train depth \(d\)};
+  \node (matAs)     [process, below of=start, yshift=-0.5cm]          
+  {Within each cluster in depth \(d-1\), find matrices of counts $A$\\
+  by using \(d\) initial commands of sessions in each cluster};
+  \node (matEs)      [process, below of=matAs, yshift=-0.5cm]   
+  {Find similarity matrices $E$ corresponding to \(A\)};
+  \node (aggclustering)      [aggclustering, yshift=-0.5cm,below of=matEs]  
+  {Agglomerative clustering within each previous cluster};
+  \node (ncluster)      [process, below of=aggclustering, yshift=-0.25cm] 
+  {Total \(N_d'\) clusters};
+  \node (matA)     [process, below of=ncluster, yshift=-0.25cm]          
+  {Find matrix of counts $A$ by using \(d\) initial commands};
+  \node (matE)      [process, below of=matA, yshift=-0.5cm]   
+  {Find similarity matrix $E$};
+  \node (aggclustering2)      [aggclustering, yshift=-0.5cm,below of=matE]  
+  {Agglomerative Clustering, total \(N_d\) clusters};
+  \node (end)      [startstop, yshift=-0.25cm,below of=aggclustering2]  
+  {Analyse the expected predictive probability and end training};
+  % Specification of lines between nodes specified above
+  % with aditional nodes for description 
+  \draw[->]             (start) -- node[] 
+                                    {if \(d>1\), suppose there are \(N_{d-1}\) clusters in depth \(d-1\)}(matAs);
+  \draw[->]     (matAs) -- node[]{
+      Multinomial-Dirichlet with \(\boldsymbol{\beta}\) as Dirichlet prior parameter
+  }(matEs);
+  \draw[->]      (matEs) -- node[]{Decision threshold}(aggclustering);
+  \draw[->]      (aggclustering) -- (ncluster);
+  \draw[->] (start.east) -- ++(5,0) -- ++(0,-7.75)  --                
+  node[xshift=2.8cm, yshift=4cm, text width=3cm]
+  {if \(d=1\), sessions with same first command form a cluster}(ncluster.east);
+  \draw[->]      (ncluster) -- (matA);
+
+  \draw[->]     (matA) -- node[]{
+      Multinomial-Dirichlet with \(\boldsymbol{\alpha}\) as Dirichlet prior parameter
+  }(matE);
+  \draw[->]      (matE) -- node[]{Decision threshold}(aggclustering2);
+
+  \draw[->]      (aggclustering2) -- (end);
+\end{tikzpicture}

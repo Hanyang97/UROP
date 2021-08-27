@@ -1,0 +1,75 @@
+\documentclass[a4paper, twoside]{report}
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+
+%% Sets page size and margins
+\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath, amsfonts}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\usepackage{tikz}
+\usepackage{booktabs}
+\usepackage{listings}
+\usetikzlibrary{arrows.meta}
+\tikzset{%
+  % Specifications for style of nodes:
+            base/.style = {rectangle, rounded corners, draw=black,
+                           minimum width=4cm, minimum height=1cm,
+                           text centered, font=\sffamily},
+  activityStarts/.style = {base, fill=blue!30},
+       startstop/.style = {base, fill=red!30},
+    aggclustering/.style = {base, fill=green!30},
+         process/.style = {base, minimum width=2.5cm, fill=orange!15,
+                           font=\ttfamily},
+}
+
+\newcommand\mydot[1][.5]{{\vcenter{\hbox{\scalebox{#1}{$\bullet$}}}}}
+
+
+\title{Statistical cyber-security: Searching for patterns in commands issued by malicious intruders}
+\author{Hanyang Liu}
+% Update supervisor and other title stuff in title/title.tex
+
+\begin{document}
+\input{title/title.tex}
+
+\begin{abstract}
+    Artificial intelligence is an active research and development area within cyber-security. 
+    The potential to automatically detect intruders within a computer network by building sophisticated, 
+    time-varying statistical models of their evolving behaviours, 
+    allowing outlying anomalous behaviours to be identified, 
+    has attracted much interest from industry and government. 
+    Less attention has been paid to modelling the actions and objectives of network intruders,
+    largely due to a lack of available data containing known malicious behaviour.
+    In this paper, we propose a method to use hierarchical agglomerative clustering
+    and multinomial-dirichlet distribution to cluster the sessions of commands.
+    The clustering successfully reduces dimensions and matains expected predictive probability.
+\end{abstract}
+
+% \renewcommand{\abstractname}{Acknowledgements}
+% \begin{abstract}
+% Thanks mum!
+% \end{abstract}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\input{introduction/introduction.tex}
+\input{background/background.tex}
+\input{project/project.tex}
+\input{evaluation/evaluation.tex}
+\input{conclusion/conclusion.tex}
+\input{appendix/appendix.tex}
+
+\bibliographystyle{alpha}
+\bibliography{bibs/sample}
+
+\end{document}

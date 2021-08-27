@@ -1,0 +1,36 @@
+\chapter{Evaluation}
+We set our Dirichlet prior \(\boldsymbol{\alpha}\) and \(\boldsymbol{\beta}\) to be 
+0.0001 in all categories, given we have investigated that \(K\) is around 1000 for this dataset.
+The cluster threshold we use is \(0.3\).
+We also experiment different length of sequence of commands, \(l_c\).
+\\\\
+In order to evaluate our performance, we design 2 baselines using \(l_c=12\) to calculate matrices \(A\) and \(E\). 
+\textbf{Baseline 1} is to let every unique initial \(d\) commands in its own clusters for depth \(d\).
+\textbf{Baseline 2} is to put all initial commands into a single cluster, i.e. not doing any clustering.
+\begin{table}[h]
+    \centering
+    \input{evaluation/prob_df.tex}
+    \caption{Expected predictive probabilities}
+    \label{tab:prob_df}
+\end{table}
+\begin{table}[h]
+    \centering
+    \input{evaluation/cluster_df.tex}
+    \caption{Number of clusters}
+    \label{tab:cluster_df}
+\end{table}
+\\
+Table \ref{tab:prob_df} shows the result of our expected predictive probabilities.
+Table \ref{tab:cluster_df} shows the result of number of clusters.
+For Baseline 1, as the number of clusters grows drastically fast as depth increases,
+most clusters will have very few elements, except for the few dominant ones.
+Therefore, we have many small homogeneous clusters in Baseline 1
+and we can expect the expected predictive probabilities increases as depth increases.
+For Baseline 2, it is meaningless to talk about depth as we put all observations into a single cluster.
+its expected predictive probability is lowest among all, as we expect.
+However, even if we put all obervations into 1 single cluster,
+the expected predictive probability, 0.432368, is still quite high.
+This can be due to the imbalance of dataset which can limit our performance gain as depth increases.
+\\\\
+A sample clustering of initial commands can be found in Appendix \ref{lst:cluster}.
+We can see that for each \(l_c\), 

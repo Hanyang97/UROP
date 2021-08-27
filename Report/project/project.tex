@@ -1,0 +1,103 @@
+\chapter{Model}
+
+\section{Clustering}
+We aim to cluster sessions and predict commands based on the first \(d\) commands of each session.
+Therefore, the model can be divided into clustering part and prediction part.
+\\\\
+We need to assign each session a label, so that we can evaluate how homogeneous each cluster is,
+and we can use the labels as surrogates for predictions.
+We divide sessions into sequences of commands of length \(l_c\)\cite{sadique2021analysis}.
+For example, if a session is \textbf{A-B-C-D-E-F} and \(l_c=3\), 
+we will have sequences \textbf{A-B-C}, \textbf{B-C-D}, \textbf{C-D-E}, and \textbf{D-E-F}.
+Sequences of commands are ranked by their number of appearances, 
+i.e. the most frequent sequence is ranked 1, the second most frequent sequence is ranked 2.
+For each session \(x\), we assign label \(y\) as the highest rank which can be achieved by the sequences obtained from \(x\).
+We denote \(x_{j}\) to be the \(j\)th command of \(x\),
+and \(x_{:d}\) to be the initial \(d\) commands of \(x\).
+Suppose we have \(N\) unique initial \(d\) commands and the lowest rank of our sessions is \(K\),
+an \(N\) by \(K\) matrix of counts \(A\) can be constructed as following: 
+\(A_{pq}\) is the number of sessions \(x\) for which \(x_{:d}\) is the \(p\)th unique first \(d\) commands,
+and \(y=q\).
+\\\\
+Hierarchical Agglomerative Clustering method is used for our clustering.
+The idea is that we start with \(N\) clusters, and pairwisely
+merge closest clusters in a predefined metric until certain threshold.
+In our case, for each initial cluster \(p\), we assume that the unknown categorical probability
+$\theta=(\theta_1,\ldots,\theta_K)$ follows a Dirichlet prior,
+\begin{equation}
+    \theta\sim \textnormal{Dirichlet}(\beta_1,\ldots,\beta_K),
+\end{equation}
+with each $\beta_j>0$. Hence we can calculate \(P(A_{p,:}|\theta)\).
+Let us define \(E\) as the dissimilarity matrix among clusters.
+We then use \(E_{pq}=\log(P(A_{p,:}, A_{q,:}|\theta)) - \log(P(A_{p,:}|\theta)) - \log(P(A_{q,:}|\theta))\)
+to calculate the gain in similarity after merging the cluster \(p\) and \(q\). 
+Finally, we can perform the agglomerative clustering as usual. 
+We use minimum linkage for agglomerative clustering.
+
+\section{Prediction}
+We now come to prediction after finishing clustering.
+Suppose a particular cluster contains $M\leq N$ data points, corresponding to data matrix row positions $i_1,\ldots,i_M$ of the $N\times K$ data matrix of counts $A=(a_{ij})$. For $1\leq j \leq K$, let
+\begin{equation}
+  n_j = \sum_{\ell=1}^M a_{i_\ell j}
+\end{equation}
+be the total frequency of category $j$ in the cluster, and let $n_{\mydot} =\sum_j n_j$. Suppose the unknown categorical probabilities $\theta=(\theta_1,\ldots,\theta_K)$ for the cluster follow a Dirichlet prior,
+\begin{equation}
+  \theta\sim \textnormal{Dirichlet}(\alpha_1,\ldots,\alpha_K),
+\end{equation}
+with each $\alpha_j>0$ and $\alpha_{\mydot} = \sum_j \alpha_j$.
+Then the marginal likelihood of the sequence of observed categories which gave rise to the bin frequencies $n_1,\ldots,n_k$ is
+\begin{equation}
+  \frac{\Gamma(\alpha_{\mydot})}{\Gamma(\alpha^\ast_{\mydot})}\prod_{j=1}^K \frac{\Gamma(\alpha^\ast_j)}{\Gamma(\alpha_j)},
+\end{equation}
+where $\alpha^\ast_j=\alpha_j + n_j$ for $1\leq j \leq K$ and $\alpha^\ast_{\mydot}=\sum_j \alpha^\ast_j=\alpha_{\mydot}+n_{\mydot}$.
+Furthermore, the posterior distribution for $\theta$ after observing $n_1,\ldots,n_K$ is
+\begin{equation}
+  \theta\mid n_1,\ldots,n_K \sim \textnormal{Dirichlet}(\alpha^\ast_1,\ldots,\alpha^\ast_K).
+\end{equation}
+In particular, this means
+\begin{equation}
+  \mathbb{E} (\theta_j \mid n_1,\ldots,n_K) = \frac{\alpha^\ast_j}{\alpha^\ast_{\mydot}}.\label{eq:predictive}
+\end{equation}
+The quantity \eqref{eq:predictive} is also the predictive probability for category $j$ in that cluster. So if we have a new observation assigned to the cluster with label $y_{N+1}$, the prediction score we get from that observation is
+\begin{equation}
+  \frac{\alpha^\ast_{y_{N+1}}}{\alpha^\ast_{\mydot}}.
+\end{equation}
+For each leaf node, the expected predictive probability in that cluster is
+\begin{equation}
+    \mathbb{E} (p(x)) = \sum_{j=1}^K (\frac{\alpha^\ast_j}{\alpha^\ast_{\mydot}})^2.
+\end{equation}
+Therefore, we can calculate the weighted sum of the expected predictive probabilities across the clusters,
+where the cluster weight is proportional to the number of observations in that cluster.
+This can be an indication of our overall cluster result.
+
+\section{Model Architecture}
+We can now combine the clustering and prediction part to construct our model.
+Suppose we want to train depth \(d\), 
+which means we know the initial \(d\) commands of all sessions to help us cluster.
+\begin{figure}[h]
+    \centering
+    \scalebox{.8}{\input{project/model1.tex}}
+    \caption{Flowchart of Intuitive Model}
+    \label{fig:model1}
+\end{figure} 
+The intuitive way of combination is like Fig \ref{fig:model1}. 
+However, the main drawback is that it cannot learn from previous clustering.
+For example, the initial 7 commands \textbf{A-B-C-D-E-F-G} and \textbf{A-B-C-D-E-F-H}
+are completely different in the intuitive model. 
+The initial 6 commands, however, are considered same.
+Many times the command \textbf{G} and \textbf{H} may only differ by a URL.
+Treating \textbf{A-B-C-D-E-F-G} and \textbf{A-B-C-D-E-F-H} and \textbf{I-I-I-I-I-I-I} 
+as 3 completely different cluster is not reasonable.
+\\\\
+Therefore, we propose a model which can both combine clustering and prediction, and learn from previous depth.
+\begin{figure}[h]
+    \centering
+    \scalebox{.8}{\input{project/aggclustering.tex}}
+    \caption{Flowchart of Our Model}
+    \label{fig:model2}
+\end{figure}
+Suppose we want to cluster in depth \(d\).
+As shown in Fig \ref{fig:model2}, the idea we introduce is to cluster within each previous cluster in depth \(d-1\) first.
+After this is done, we try to see if the existing clusters can be further combined.
+This assymetric clustering procedure gives advantage to sessions with different initial \(d\) commands,
+but in the same cluster in depth \(d-1\).    
