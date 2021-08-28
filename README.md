@@ -7,3 +7,4 @@ There are three groups of ipynbs. In each group, 1000 represents split of 100:0.
 The first group is clustering purely based on number of initial commands chosen.
 The second group is clustering based on previously unclustered clusters. 
 The third group is clustering within each previous cluster first, then cluster all clusters.
+Table.ipynb contains code to produce results for report.
